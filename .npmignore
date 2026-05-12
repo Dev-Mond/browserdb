@@ -1,0 +1,10 @@
+nodnode_modules/
+tests/
+.env
+*.log
+public/
+.vscode
+.idea
+.DS_Store
+coverage/
+.jest-cache/
