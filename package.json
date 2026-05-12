@@ -1,0 +1,36 @@
+{
+  "name": "browserdb",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "exports": {
+    ".": {
+      "import": "./dist/browserdb.es.mjs",
+      "require": "./dist/browserdb.cjs.js",
+      "browser": "./dist/browserdb.umd.js"
+    }
+  },
+  "scripts": {
+    "test": "jest --config jest.config.cjs --runInBand",
+    "build": "vite build",
+    "build:dev": "vite build --mode development",
+    "preview": "vite preview"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "files": [
+    "dist",
+    "index.js",
+    "src",
+    "README.md"
+  ],
+  "devDependencies": {
+    "@babel/preset-env": "^7.29.5",
+    "dexie": "^4.4.2",
+    "fake-indexeddb": "^4.0.0",
+    "jest": "^30.4.2",
+    "terser": "^5.47.1",
+    "vite": "^5.0.0"
+  }
+}

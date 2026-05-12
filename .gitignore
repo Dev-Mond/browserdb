@@ -1,0 +1,10 @@
+node_modules/
+dist/
+*.log
+.env
+.env.local
+.vscode
+.idea
+.DS_Store
+coverage/
+.jest-cache/

@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Document</title>
+</head>
+
+<body>
+  <script type="importmap">
+    {
+      "imports": {
+        "dexie": "https://cdn.jsdelivr.net/npm/dexie@4.4.2/dist/dexie.min.mjs"
+      }
+    }
+  </script>
+  <script type="module">
+    import BrowserDB from "./browserdb.es.mjs";
+
+    let db = await BrowserDB( "325242343243" );
+    await db.open( [
+      {
+        name: "users",
+        options: { keyPath: "id", autoIncrement: true },
+        indexes: [
+          { name: "name-index", keyPath: "name" }
+        ]
+      },
+      {
+        name: "roles",
+        options: { keyPath: "id", autoIncrement: true },
+        indexes: [
+          { name: "code-index", keyPath: "code" }
+        ]
+      }
+    ] );
+    await db.from( 'users' ).truncate();
+    await db.from( 'users' ).put( { name: "Juan", email: "email@provider.com", password: "password123" } );
+    await db.from( 'users' ).put( { name: "Jose", email: "email@provider.com", password: "password123" } );
+    await db.from( 'users' ).put( { name: "Riva", email: "email@provider.com", password: "password123" } );
+    await db.from( 'users' ).put( { name: "Riva", email: "email2@provider.com", password: "password123" } );
+    console.log( await db.from( 'users' ).where( ( s ) => s.name === "Juan" ).get() );
+    console.log( await db.from( 'users' ).get() );
+    console.log( await db.from( 'users' ).index( 'name-index', "Riva" ).get() );
+    await db.from( 'roles' ).truncate();
+    await db.from( 'roles' ).put( { code: "ADMIN", desc: "Admin" } );
+    console.log( await db.from( 'roles' ).get() );
+  </script>
+</body>
+
+</html>
