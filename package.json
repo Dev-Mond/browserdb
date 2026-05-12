@@ -1,5 +1,5 @@
 {
-  "name": "browserdb",
+  "name": "@devmore/browserdb",
   "version": "1.0.0",
   "description": "",
   "main": "index.js",
