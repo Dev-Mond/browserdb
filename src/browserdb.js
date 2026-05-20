@@ -667,7 +667,7 @@ export default function BrowserDB ( userId ) {
 
     getSyncStatus () {
       ensureStoreSelected();
-      return db.table( "__sync__" ).where( "store" ).equals( activeStore ).where( "status" ).equals( "PENDING" ).count();
+      return db.table( "__sync__" ).where( "store" ).equals( activeStore ).filter( e => e.status === "PENDING" ).count();
     },
 
     clearSyncMetadata () {
