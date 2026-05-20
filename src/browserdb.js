@@ -110,6 +110,7 @@ const SYNC_METADATA_STORE = {
   options: { keyPath: "id", autoIncrement: true },
   indexes: [
     { name: "store_and_record_id", keyPath: [ "store", "record_id" ], unique: true },
+    { name: "store_and_status", keyPath: [ "store", "status" ] },
     { name: "store", keyPath: "store" },
     { name: "status", keyPath: "status" },
     { name: "timestamp", keyPath: "timestamp" }
@@ -174,15 +175,31 @@ export default function BrowserDB ( userId ) {
     try {
       const syncTable = db.table( "__sync__" );
       const now = Date.now();
-      await syncTable.put( {
-        store,
-        record_id: String( recordId ),
-        operation,
-        local_timestamp: now,
-        remote_timestamp: remoteTimestamp || null,
-        status: "PENDING",
-        attempts: 0
-      } );
+
+      const existing = await syncTable
+        .where( [ "store", "record_id" ] )
+        .equals( [ store, String( recordId ) ] )
+        .first();
+
+      if ( existing ) {
+        await syncTable.update( existing.id, {
+          operation,
+          local_timestamp: now,
+          remote_timestamp: remoteTimestamp || null,
+          status: "PENDING",
+          attempts: 0
+        } );
+      } else {
+        await syncTable.put( {
+          store,
+          record_id: String( recordId ),
+          operation,
+          local_timestamp: now,
+          remote_timestamp: remoteTimestamp || null,
+          status: "PENDING",
+          attempts: 0
+        } );
+      }
     } catch ( err ) {
       console.warn( "Failed to track change:", err );
     }
@@ -206,7 +223,7 @@ export default function BrowserDB ( userId ) {
   async function detectConflict ( store, recordId, remoteTimestamp ) {
     try {
       const syncTable = db.table( "__sync__" );
-      const sync = await syncTable.where( "store_and_record_id" ).equals( [ store, String( recordId ) ] ).first();
+      const sync = await syncTable.where( [ "store", "record_id" ] ).equals( [ store, String( recordId ) ] ).first();
       if ( sync && sync.status === "PENDING" && sync.local_timestamp > remoteTimestamp ) {
         return true;
       }
@@ -224,7 +241,7 @@ export default function BrowserDB ( userId ) {
       normalized.metadata[ "__sync__" ] = {
         keyPath: "__sync__.id",
         autoIncrement: true,
-        indexes: { store_and_record_id: "store_and_record_id", store: "store", status: "status", timestamp: "timestamp" }
+        indexes: { store_and_record_id: [ "store", "record_id" ], store: "store", status: "status", timestamp: "timestamp" }
       };
     }
 
@@ -661,17 +678,26 @@ export default function BrowserDB ( userId ) {
 
     getSyncMetadata () {
       ensureStoreSelected();
-      return db.table( "__sync__" ).where( "store" ).equals( activeStore ).toArray();
+      return db.table( "__sync__" )
+        .where( "store" )
+        .equals( activeStore )
+        .toArray();
     },
 
     getSyncStatus () {
       ensureStoreSelected();
-      return db.table( "__sync__" ).where( "store" ).equals( activeStore ).filter( e => e.status === "PENDING" ).count();
+      return db.table( "__sync__" )
+        .where( [ "store", "status" ] )
+        .equals( [ activeStore, "PENDING" ] )
+        .count();
     },
 
     clearSyncMetadata () {
       ensureStoreSelected();
-      return db.table( "__sync__" ).where( "store" ).equals( activeStore ).delete();
+      return db.table( "__sync__" )
+        .where( "store" )
+        .equals( activeStore )
+        .delete();
     },
 
     enableChangeTracking () {
