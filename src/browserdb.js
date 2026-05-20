@@ -109,7 +109,7 @@ const SYNC_METADATA_STORE = {
   name: "__sync__",
   options: { keyPath: "id", autoIncrement: true },
   indexes: [
-    { name: "storeAndRecordId", keyPath: [ "store", "recordId" ], unique: true },
+    { name: "store_and_record_id", keyPath: [ "store", "record_id" ], unique: true },
     { name: "store", keyPath: "store" },
     { name: "status", keyPath: "status" },
     { name: "timestamp", keyPath: "timestamp" }
@@ -176,10 +176,10 @@ export default function BrowserDB ( userId ) {
       const now = Date.now();
       await syncTable.put( {
         store,
-        recordId: String( recordId ),
+        record_id: String( recordId ),
         operation,
-        localTimestamp: now,
-        remoteTimestamp: remoteTimestamp || null,
+        local_timestamp: now,
+        remote_timestamp: remoteTimestamp || null,
         status: "PENDING",
         attempts: 0
       } );
@@ -191,11 +191,11 @@ export default function BrowserDB ( userId ) {
   async function markSynced ( store, recordId, remoteTimestamp = null ) {
     try {
       const syncTable = db.table( "__sync__" );
-      const existing = await syncTable.where( "storeAndRecordId" ).equals( [ store, String( recordId ) ] ).first();
+      const existing = await syncTable.where( "store_and_record_id" ).equals( [ store, String( recordId ) ] ).first();
       if ( existing ) {
         await syncTable.update( existing.id, {
           status: "SYNCED",
-          remoteTimestamp: remoteTimestamp || Date.now()
+          remote_timestamp: remoteTimestamp || Date.now()
         } );
       }
     } catch ( err ) {
@@ -206,8 +206,8 @@ export default function BrowserDB ( userId ) {
   async function detectConflict ( store, recordId, remoteTimestamp ) {
     try {
       const syncTable = db.table( "__sync__" );
-      const sync = await syncTable.where( "storeAndRecordId" ).equals( [ store, String( recordId ) ] ).first();
-      if ( sync && sync.status === "PENDING" && sync.localTimestamp > remoteTimestamp ) {
+      const sync = await syncTable.where( "store_and_record_id" ).equals( [ store, String( recordId ) ] ).first();
+      if ( sync && sync.status === "PENDING" && sync.local_timestamp > remoteTimestamp ) {
         return true;
       }
     } catch ( err ) {
@@ -219,13 +219,12 @@ export default function BrowserDB ( userId ) {
   async function applySchema ( schemaSource, version = DB_VERSION ) {
     const normalized = normalizeSchema( schemaSource );
 
-    // Always include sync metadata store
     if ( !normalized.stores[ "__sync__" ] ) {
       normalized.stores[ "__sync__" ] = buildStoreSchema( SYNC_METADATA_STORE );
       normalized.metadata[ "__sync__" ] = {
         keyPath: "__sync__.id",
         autoIncrement: true,
-        indexes: { storeAndRecordId: "storeAndRecordId", store: "store", status: "status", timestamp: "timestamp" }
+        indexes: { store_and_record_id: "store_and_record_id", store: "store", status: "status", timestamp: "timestamp" }
       };
     }
 
@@ -526,7 +525,7 @@ export default function BrowserDB ( userId ) {
       for ( const [ operation, records ] of Object.entries( grouped ) ) {
         for ( let i = 0; i < records.length; i += chunkSize ) {
           const chunk = records.slice( i, Math.min( i + chunkSize, records.length ) );
-          const recordIds = chunk.map( r => r.recordId );
+          const recordIds = chunk.map( r => r.record_id );
 
           try {
             await requestJson( url, {
@@ -603,7 +602,7 @@ export default function BrowserDB ( userId ) {
 
             for ( const record of data ) {
               const recordId = record[ primaryKey ];
-              const hasConflict = await detectConflict( storeName, recordId, record._remoteTimestamp || Date.now() );
+              const hasConflict = await detectConflict( storeName, recordId, record.remote_timestamp || Date.now() );
 
               if ( hasConflict ) {
                 conflicts.push( { recordId, operation: "CONFLICT_MERGE" } );
@@ -612,7 +611,7 @@ export default function BrowserDB ( userId ) {
                 } else {
                   // last-write-wins (default): keep local if local is newer
                   const local = await table.get( recordId );
-                  if ( !local || ( local._localTimestamp || 0 ) < ( record._remoteTimestamp || 0 ) ) {
+                  if ( !local || ( local.local_timestamp || 0 ) < ( record.remote_timestamp || 0 ) ) {
                     await table.put( record );
                   }
                 }
@@ -620,7 +619,7 @@ export default function BrowserDB ( userId ) {
                 await table.put( record );
               }
 
-              await markSynced( storeName, recordId, record._remoteTimestamp || Date.now() );
+              await markSynced( storeName, recordId, record.remote_timestamp || Date.now() );
             }
 
             allData = allData.concat( data );
