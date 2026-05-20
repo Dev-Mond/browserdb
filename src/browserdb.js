@@ -208,7 +208,7 @@ export default function BrowserDB ( userId ) {
   async function markSynced ( store, recordId, remoteTimestamp = null ) {
     try {
       const syncTable = db.table( "__sync__" );
-      const existing = await syncTable.where( "store_and_record_id" ).equals( [ store, String( recordId ) ] ).first();
+      const existing = await syncTable.where( [ "store", "record_id" ] ).equals( [ store, String( recordId ) ] ).first();
       if ( existing ) {
         await syncTable.update( existing.id, {
           status: "SYNCED",
